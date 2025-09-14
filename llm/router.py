@@ -26,9 +26,17 @@ class LLMRouter:
         """
         return self.backend.verify_text(image_b64, candidate_text)
 
-    def extract_fields(self, blocks: list) -> Dict[str, Any]:
+    def extract_fields(self, text: str, image_b64: str, prompt: str) -> Dict[str, Any]:
         """
         Выделение ключевых полей из документа.
-        blocks — список словарей с OCR результатами.
+
+        Parameters
+        ----------
+        text:
+            Полный извлечённый текст документа.
+        image_b64:
+            Изображение документа в base64.
+        prompt:
+            Подсказка для LLM.
         """
-        return self.backend.extract_fields(blocks)
+        return self.backend.extract_fields(text, image_b64, prompt)
