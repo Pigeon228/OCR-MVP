@@ -11,5 +11,5 @@ class LocalLLM:
     def verify_text(self, image_b64: str, candidate_text: str):
         return {"corrected": candidate_text, "confidence": 0.5, "note": "Local LLM not implemented"}
 
-    def extract_fields(self, blocks: list):
+    def extract_fields(self, text: str, image_b64: str, prompt: str):
         return {"note": "Local LLM not implemented"}

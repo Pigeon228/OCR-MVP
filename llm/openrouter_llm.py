@@ -51,26 +51,18 @@ class OpenRouterLLM:
         except Exception as e:
             return {"corrected": candidate_text, "confidence": 0.0, "error": str(e)}
 
-    def extract_fields(self, blocks: list):
+    def extract_fields(self, text: str, image_b64: str, prompt: str):
         try:
-            prompt = (
-                "Ты получаешь OCR-блоки (текст с документа).\n"
-                "Задача: найти ключевые поля договора и вернуть JSON со структурой:\n"
-                "{\n"
-                '  "contract_number": "...",\n'
-                '  "date": "...",\n'
-                '  "parties": ["...", "..."],\n'
-                '  "amount": "...",\n'
-                '  "other": "..." (если есть)\n'
-                "}\n"
-                "Если поле не найдено — ставь пустую строку."
-            )
+            content = [
+                {"type": "text", "text": f"{prompt}\n\n{text}"},
+                {"type": "image_url", "image_url": {"url": image_b64}},
+            ]
 
             resp = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": "You are a contract parser. JSON only."},
-                    {"role": "user", "content": prompt + f"\n\nOCR-блоки:\n{json.dumps(blocks, ensure_ascii=False)}"},
+                    {"role": "user", "content": content},
                 ],
             )
 
