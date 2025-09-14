@@ -1,9 +1,15 @@
-"""CLI for document_parser."""
+"""Command line interface for :mod:`document_parser`.
+
+This module can be executed either via ``python -m document_parser`` or by
+running the file directly.  When executed as a script the package is not
+installed, so we fall back to adjusting ``sys.path`` and performing an absolute
+import to avoid ``ImportError: attempted relative import with no known parent``.
+"""
 
 import argparse
 import json
-
-from . import parse_document
+import sys
+from pathlib import Path
 
 
 def main() -> None:
@@ -24,6 +30,12 @@ def main() -> None:
         help="Verify OCR blocks with LLM before field extraction",
     )
     args = parser.parse_args()
+
+    try:  # pragma: no cover - import shim for direct execution
+        from . import parse_document
+    except ImportError:  # executed as a standalone script
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from document_parser import parse_document  # type: ignore
 
     result = parse_document(
         image_path=args.image,
