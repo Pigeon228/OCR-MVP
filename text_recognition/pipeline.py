@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict
+from typing import Any, Dict, Optional
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -10,25 +10,42 @@ from .utils import pil_to_data_url, np_convert
 
 def process_image(
     image_path: str,
-    output_dir: str,
+    output_dir: Optional[str] = None,
     use_llm: bool = False,
     llm_backend: str = "openrouter",
     conf_min: float = 0.1,
     llm_check_max: float = 0.5,
     label_max_chars: int = 30,
     font_size: int = 8,
-) -> Dict[str, str]:
-    """Run OCR pipeline with optional LLM verification."""
+    save_outputs: bool = True,
+) -> Dict[str, Any]:
+    """Run OCR pipeline with optional LLM verification.
+
+    When ``save_outputs`` is False the function will not write any files to disk
+    and instead returns the processed OCR blocks directly.
+    """
     import easyocr
 
-    overlay_path = os.path.join(output_dir, "easy_overlay.png")
-    easy_txt = os.path.join(output_dir, "easy_results.txt")
-    verified_txt = os.path.join(output_dir, "verified_results.txt")
-    blocks_json = os.path.join(output_dir, "blocks.json")
-    crops_dir = os.path.join(output_dir, "crops")
+    if save_outputs and not output_dir:
+        raise ValueError("output_dir must be provided when save_outputs=True")
 
-    os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(crops_dir, exist_ok=True)
+    overlay_path = (
+        os.path.join(output_dir, "easy_overlay.png") if save_outputs else ""
+    )
+    easy_txt = (
+        os.path.join(output_dir, "easy_results.txt") if save_outputs else ""
+    )
+    verified_txt = (
+        os.path.join(output_dir, "verified_results.txt") if save_outputs else ""
+    )
+    blocks_json = (
+        os.path.join(output_dir, "blocks.json") if save_outputs else ""
+    )
+    crops_dir = os.path.join(output_dir, "crops") if save_outputs else ""
+
+    if save_outputs:
+        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(crops_dir, exist_ok=True)
 
     easy = easyocr.Reader(["ru", "en"], gpu=False)
     results_easy = easy.readtext(image_path, detail=1)
@@ -36,8 +53,8 @@ def process_image(
         raise SystemExit("⚠️ EasyOCR не нашёл текста.")
 
     base = Image.open(image_path).convert("RGBA")
-    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0)) if save_outputs else None
+    draw = ImageDraw.Draw(overlay) if overlay else None
 
     try:
         font = ImageFont.truetype("arial.ttf", font_size)
@@ -62,8 +79,10 @@ def process_image(
         xmin, xmax = int(min(x1, x2, x3, x4)), int(max(x1, x2, x3, x4))
         ymin, ymax = int(min(y1, y2, y3, y4)), int(max(y1, y2, y3, y4))
         crop = base.crop((xmin, ymin, xmax, ymax)).convert("RGB")
-        crop_path = os.path.join(crops_dir, f"block_{idx}.png")
-        crop.save(crop_path)
+        crop_path = ""
+        if save_outputs:
+            crop_path = os.path.join(crops_dir, f"block_{idx}.png")
+            crop.save(crop_path)
 
         final_text, final_conf, source = easy_text, easy_conf, "EASY"
         llm_resp = None
@@ -79,31 +98,36 @@ def process_image(
         verified_lines.append(final_text)
         kept += 1
 
-        poly = [(int(x1), int(y1)), (int(x2), int(y2)),
-                (int(x3), int(y3)), (int(x4), int(y4))]
+        poly = [
+            (int(x1), int(y1)),
+            (int(x2), int(y2)),
+            (int(x3), int(y3)),
+            (int(x4), int(y4)),
+        ]
         color = (0, 0, 255) if source == "EASY" else (255, 128, 0)
 
-        draw.polygon(poly, fill=color + (60,))
-        for i in range(4):
-            draw.line([poly[i], poly[(i + 1) % 4]], fill=color + (200,), width=2)
+        if draw:
+            draw.polygon(poly, fill=color + (60,))
+            for i in range(4):
+                draw.line([poly[i], poly[(i + 1) % 4]], fill=color + (200,), width=2)
 
-        short = (
-            final_text[:label_max_chars] + "…"
-            if len(final_text) > label_max_chars
-            else final_text
-        )
-        label = f"{source}: {short} ({final_conf:.2f})"
-        tw, th = draw.textbbox((0, 0), label, font=font)[2:]
-        draw.rectangle(
-            [(poly[0][0], poly[0][1] - th - 4), (poly[0][0] + tw + 4, poly[0][1])],
-            fill=(0, 0, 0, 160),
-        )
-        draw.text(
-            (poly[0][0] + 2, poly[0][1] - th - 2),
-            label,
-            fill=(255, 255, 255, 255),
-            font=font,
-        )
+            short = (
+                final_text[:label_max_chars] + "…"
+                if len(final_text) > label_max_chars
+                else final_text
+            )
+            label = f"{source}: {short} ({final_conf:.2f})"
+            tw, th = draw.textbbox((0, 0), label, font=font)[2:]
+            draw.rectangle(
+                [(poly[0][0], poly[0][1] - th - 4), (poly[0][0] + tw + 4, poly[0][1])],
+                fill=(0, 0, 0, 160),
+            )
+            draw.text(
+                (poly[0][0] + 2, poly[0][1] - th - 2),
+                label,
+                fill=(255, 255, 255, 255),
+                font=font,
+            )
 
         blocks_log.append(
             {
@@ -125,27 +149,31 @@ def process_image(
                     "confidence": float(final_conf),
                     "source": source,
                 },
-                "crop_path": crop_path,
+                "crop_path": crop_path if save_outputs else None,
             }
         )
 
-    result_img = Image.alpha_composite(base, overlay).convert("RGB")
-    result_img.save(overlay_path)
+    if save_outputs and overlay:
+        result_img = Image.alpha_composite(base, overlay).convert("RGB")
+        result_img.save(overlay_path)
 
-    with open(easy_txt, "w", encoding="utf-8") as f:
-        f.write("\n".join(easy_lines))
+        with open(easy_txt, "w", encoding="utf-8") as f:
+            f.write("\n".join(easy_lines))
 
-    with open(verified_txt, "w", encoding="utf-8") as f:
-        f.write("\n".join(verified_lines))
+        with open(verified_txt, "w", encoding="utf-8") as f:
+            f.write("\n".join(verified_lines))
 
-    with open(blocks_json, "w", encoding="utf-8") as f:
-        json.dump(blocks_log, f, ensure_ascii=False, indent=2, default=np_convert)
+        with open(blocks_json, "w", encoding="utf-8") as f:
+            json.dump(blocks_log, f, ensure_ascii=False, indent=2, default=np_convert)
 
-    return {
-        "kept": kept,
-        "overlay_path": overlay_path,
-        "easy_txt": easy_txt,
-        "verified_txt": verified_txt,
-        "blocks_json": blocks_json,
-        "crops_dir": crops_dir,
-    }
+        return {
+            "kept": kept,
+            "overlay_path": overlay_path,
+            "easy_txt": easy_txt,
+            "verified_txt": verified_txt,
+            "blocks_json": blocks_json,
+            "crops_dir": crops_dir,
+            "blocks": blocks_log,
+        }
+
+    return {"kept": kept, "blocks": blocks_log}
