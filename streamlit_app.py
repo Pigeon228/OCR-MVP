@@ -14,10 +14,6 @@ st.title("OCR-MVP Demo")
 
 # Загрузка файла
 uploaded = st.file_uploader("Загрузите PDF", type=["pdf"])
-use_llm = st.checkbox(
-    "Включить OCR-LLM (использовать LLM для коррекции сильно зашумлённых кусков текста)",
-    value=False,
-)
 prompt_text = st.text_area("Prompt", value=BASE_PROMPT, height=300)
 
 # Запуск обработки
@@ -40,7 +36,7 @@ if uploaded and st.button("Запустить"):
     # Запуск парсинга
     result: Dict[str, Any] = parse_document(
         pdf_path=pdf_path,
-        use_llm=use_llm,
+        use_llm=False,
         prompt=prompt_text,
         progress_cb=cb,
     )
