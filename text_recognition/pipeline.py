@@ -1,34 +1,27 @@
-import os
-import json
-from typing import Dict
+from typing import Dict, Any, List
 
 from PIL import Image, ImageDraw, ImageFont
 
 from llm.router import LLMRouter
-from .utils import pil_to_data_url, np_convert
+from .utils import pil_to_data_url
 
 
 def process_image(
     image_path: str,
-    output_dir: str,
     use_llm: bool = False,
     llm_backend: str = "openrouter",
     conf_min: float = 0.1,
     llm_check_max: float = 0.5,
     label_max_chars: int = 30,
     font_size: int = 8,
-) -> Dict[str, str]:
-    """Run OCR pipeline with optional LLM verification."""
+) -> Dict[str, Any]:
+    """Run OCR pipeline with optional LLM verification.
+
+    The function performs OCR on ``image_path`` and returns all intermediate
+    results without writing anything to disk.  Consumers of this function are
+    responsible for persisting any desired outputs.
+    """
     import easyocr
-
-    overlay_path = os.path.join(output_dir, "easy_overlay.png")
-    easy_txt = os.path.join(output_dir, "easy_results.txt")
-    verified_txt = os.path.join(output_dir, "verified_results.txt")
-    blocks_json = os.path.join(output_dir, "blocks.json")
-    crops_dir = os.path.join(output_dir, "crops")
-
-    os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(crops_dir, exist_ok=True)
 
     easy = easyocr.Reader(["ru", "en"], gpu=False)
     results_easy = easy.readtext(image_path, detail=1)
@@ -49,7 +42,9 @@ def process_image(
 
     llm = LLMRouter(backend=llm_backend) if use_llm else None
 
-    easy_lines, verified_lines, blocks_log = [], [], []
+    easy_lines: List[str] = []
+    verified_lines: List[str] = []
+    blocks_log: List[Dict[str, Any]] = []
     kept = 0
 
     for idx, line in enumerate(results_easy, 1):
@@ -62,14 +57,13 @@ def process_image(
         xmin, xmax = int(min(x1, x2, x3, x4)), int(max(x1, x2, x3, x4))
         ymin, ymax = int(min(y1, y2, y3, y4)), int(max(y1, y2, y3, y4))
         crop = base.crop((xmin, ymin, xmax, ymax)).convert("RGB")
-        crop_path = os.path.join(crops_dir, f"block_{idx}.png")
-        crop.save(crop_path)
+        crop_data = pil_to_data_url(crop)
 
         final_text, final_conf, source = easy_text, easy_conf, "EASY"
         llm_resp = None
 
         if use_llm and easy_conf < llm_check_max:
-            llm_resp = llm.verify_text(pil_to_data_url(crop), easy_text)
+            llm_resp = llm.verify_text(crop_data, easy_text)
             llm_text = llm_resp.get("corrected", "")
             llm_conf = llm_resp.get("confidence", 0.0)
             if llm_text and llm_conf >= final_conf:
@@ -125,27 +119,16 @@ def process_image(
                     "confidence": float(final_conf),
                     "source": source,
                 },
-                "crop_path": crop_path,
+                "crop_data": crop_data,
             }
         )
 
     result_img = Image.alpha_composite(base, overlay).convert("RGB")
-    result_img.save(overlay_path)
-
-    with open(easy_txt, "w", encoding="utf-8") as f:
-        f.write("\n".join(easy_lines))
-
-    with open(verified_txt, "w", encoding="utf-8") as f:
-        f.write("\n".join(verified_lines))
-
-    with open(blocks_json, "w", encoding="utf-8") as f:
-        json.dump(blocks_log, f, ensure_ascii=False, indent=2, default=np_convert)
 
     return {
         "kept": kept,
-        "overlay_path": overlay_path,
-        "easy_txt": easy_txt,
-        "verified_txt": verified_txt,
-        "blocks_json": blocks_json,
-        "crops_dir": crops_dir,
+        "overlay": result_img,
+        "easy_lines": easy_lines,
+        "verified_lines": verified_lines,
+        "blocks": blocks_log,
     }
