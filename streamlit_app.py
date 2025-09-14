@@ -14,10 +14,11 @@ st.title("OCR-MVP Demo")
 
 # Загрузка файла
 uploaded = st.file_uploader("Загрузите PDF", type=["pdf"])
-use_llm = st.checkbox(
-    "Включить OCR-LLM (использовать LLM для коррекции сильно зашумлённых кусков текста)",
-    value=False,
-)
+# Выбор режима LLM
+llm_mode = st.selectbox("Режим LLM", ["Облако", "Локально"], index=0)
+if llm_mode == "Локально":
+    st.warning("Локальная LLM ещё не реализована, используйте облачный вариант.")
+llm_backend = "openrouter" if llm_mode == "Облако" else "local"
 prompt_text = st.text_area("Prompt", value=BASE_PROMPT, height=300)
 
 # Запуск обработки
@@ -40,9 +41,10 @@ if uploaded and st.button("Запустить"):
     # Запуск парсинга
     result: Dict[str, Any] = parse_document(
         pdf_path=pdf_path,
-        use_llm=use_llm,
+        llm_backend=llm_backend,
         prompt=prompt_text,
         progress_cb=cb,
+        use_llm=True,
     )
 
     os.unlink(pdf_path)
