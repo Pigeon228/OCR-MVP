@@ -13,11 +13,11 @@ from pathlib import Path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Extract document fields from an image")
+    parser = argparse.ArgumentParser(description="Extract document fields from a PDF")
     parser.add_argument(
-        "--image",
-        default="test2.png",
-        help="Path to the input image",
+        "--pdf",
+        default="test1.pdf",
+        help="Path to the input PDF file",
     )
     parser.add_argument(
         "--backend",
@@ -38,7 +38,7 @@ def main() -> None:
         from document_parser import parse_document  # type: ignore
 
     result = parse_document(
-        image_path=args.image,
+        pdf_path=args.pdf,
         llm_backend=args.backend,
         use_llm=args.use_ocr_llm,
     )
