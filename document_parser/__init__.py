@@ -41,7 +41,8 @@ def parse_document(image_path: str, llm_backend: str = "openrouter", **ocr_kwarg
         '  "amount": "...",\n'
         '  "other": "..." (если есть)\n'
         "}\n"
-        "Если поле не найдено — ставь пустую строку."
+        "Если поле не найдено — ставь пустую строку.\n"
+        "Дата должна быть полной (укажи число, месяц и год)."
     )
 
     from llm.router import LLMRouter
