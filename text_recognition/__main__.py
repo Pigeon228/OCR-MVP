@@ -29,7 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run OCR on an image")
     parser.add_argument(
         "--image",
-        default="examples/inputs/contract3.png",
+        default="contract3.png",
         help="Path to input image",
     )
     parser.add_argument(

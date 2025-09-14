@@ -16,7 +16,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Extract document fields from an image")
     parser.add_argument(
         "--image",
-        default="examples/inputs/contract3.png",
+        default="test2.png",
         help="Path to the input image",
     )
     parser.add_argument(
