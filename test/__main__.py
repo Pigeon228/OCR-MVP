@@ -1,6 +1,22 @@
-import argparse
+"""CLI entry point for the OCR test module.
 
-from . import process_image
+This script can be executed either as a module (``python -m test``) or
+directly as a file (``python test/__main__.py``).  When run directly, the
+relative import from ``test`` would normally fail with ``ImportError``.  To
+support both modes, we attempt a relative import first and fall back to an
+absolute import after injecting the package's parent directory into
+``sys.path`` if necessary.
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+try:  # pragma: no cover - simple import shim
+    from . import process_image
+except ImportError:  # running as a script
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from test import process_image  # type: ignore
 
 
 def main():
