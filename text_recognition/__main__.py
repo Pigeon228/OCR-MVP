@@ -38,11 +38,6 @@ def main():
         help="Directory to store results",
     )
     parser.add_argument(
-        "--llm",
-        action="store_true",
-        help="Enable LLM verification",
-    )
-    parser.add_argument(
         "--backend",
         default="openrouter",
         help="LLM backend name",
@@ -51,7 +46,7 @@ def main():
 
     info = process_image(
         image_path=args.image,
-        use_llm=args.llm,
+        use_llm=False,
         llm_backend=args.backend,
     )
 
@@ -81,7 +76,7 @@ def main():
     print(f"✅ Принято {info['kept']} блоков")
     print(f"🖼 Оверлей: {overlay_path}")
     print(f"📄 Easy (сырое): {easy_txt}")
-    print(f"📄 Итог (после LLM): {verified_txt}")
+    print(f"📄 Итог: {verified_txt}")
     print(f"🧾 Лог блоков: {blocks_json}")
     print(f"🖼 Кропы: {crops_dir}")
 

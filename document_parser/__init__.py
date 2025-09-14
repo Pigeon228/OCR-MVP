@@ -84,7 +84,13 @@ def parse_document(
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
                 image.save(tmp.name)
                 tmp_path = tmp.name
-            info = process_image(image_path=tmp_path, llm_backend=llm_backend, **ocr_kwargs)
+            ocr_kwargs.pop("use_llm", None)
+            info = process_image(
+                image_path=tmp_path,
+                llm_backend=llm_backend,
+                use_llm=False,
+                **ocr_kwargs,
+            )
             os.unlink(tmp_path)
             text = "\n".join(info.get("verified_lines", []))
             image_b64 = pil_to_data_url(image)

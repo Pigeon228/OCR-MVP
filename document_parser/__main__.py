@@ -24,11 +24,6 @@ def main() -> None:
         default="openrouter",
         help="LLM backend name",
     )
-    parser.add_argument(
-        "--use-ocr-llm",
-        action="store_true",
-        help="Verify OCR blocks with LLM before field extraction",
-    )
     args = parser.parse_args()
 
     try:  # pragma: no cover - import shim for direct execution
@@ -40,7 +35,6 @@ def main() -> None:
     result = parse_document(
         pdf_path=args.pdf,
         llm_backend=args.backend,
-        use_llm=args.use_ocr_llm,
     )
     print(json.dumps(result["fields"], ensure_ascii=False, indent=2))
 
