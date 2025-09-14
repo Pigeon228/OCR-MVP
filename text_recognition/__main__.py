@@ -1,8 +1,8 @@
-"""CLI entry point for the OCR test module.
+"""CLI entry point for the OCR text_recognition module.
 
-This script can be executed either as a module (``python -m test``) or
-directly as a file (``python test/__main__.py``).  When run directly, the
-relative import from ``test`` would normally fail with ``ImportError``.  To
+This script can be executed either as a module (``python -m text_recognition``) or
+directly as a file (``python text_recognition/__main__.py``).  When run directly, the
+relative import from ``text_recognition`` would normally fail with ``ImportError``.  To
 support both modes, we attempt a relative import first and fall back to an
 absolute import after injecting the package's parent directory into
 ``sys.path`` if necessary.
@@ -16,7 +16,7 @@ try:  # pragma: no cover - simple import shim
     from . import process_image
 except ImportError:  # running as a script
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from test import process_image  # type: ignore
+    from text_recognition import process_image  # type: ignore
 
 
 def main():
