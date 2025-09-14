@@ -16,7 +16,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Extract document fields from a PDF")
     parser.add_argument(
         "--pdf",
-        default="test.pdf",
+        default="test1.pdf",
         help="Path to the input PDF file",
     )
     parser.add_argument(
