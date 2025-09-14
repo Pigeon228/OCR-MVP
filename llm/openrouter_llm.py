@@ -51,12 +51,14 @@ class OpenRouterLLM:
         except Exception as e:
             return {"corrected": candidate_text, "confidence": 0.0, "error": str(e)}
 
-    def extract_fields(self, text: str, image_b64: str, prompt: str):
+    def extract_fields(self, pages, prompt: str):
         try:
-            content = [
-                {"type": "text", "text": f"{prompt}\n\n{text}"},
-                {"type": "image_url", "image_url": {"url": image_b64}},
-            ]
+            content = [{"type": "text", "text": prompt}]
+            for page in pages:
+                num = page.get("page", 0)
+                content.append({"type": "text", "text": f"Страница {num}"})
+                content.append({"type": "image_url", "image_url": {"url": page.get("image_b64", "")}})
+                content.append({"type": "text", "text": page.get("text", "")})
 
             resp = self.client.chat.completions.create(
                 model=self.model,
