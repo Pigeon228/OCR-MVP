@@ -1,7 +1,7 @@
 # config.py
 
 # API-ключ OpenRouter (для демо решил тут на время оставить ключ с ограничением 3 доллара)
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 
 # Модель по умолчанию
 OPENROUTER_MODEL = "openai/gpt-5-mini"
